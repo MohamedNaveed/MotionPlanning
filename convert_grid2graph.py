@@ -81,3 +81,5 @@ if __name__ == '__main__':
 
     for v in range(graph.V):
         print(v, ":", graph.graph[v])
+
+    print(graph.graph)
