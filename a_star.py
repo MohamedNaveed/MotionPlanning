@@ -1,8 +1,9 @@
 # A-star algorithm implementation. 
 
 import heapq
-import math
-import numpy as np
+import matplotlib.pyplot as plt
+import visulaize_grid
+
 
 #size of the grid
 
@@ -35,6 +36,7 @@ def is_unblocked(grid, row, col):
 def cal_h(node, dest):
 
     return ((node[0] - dest[0]) ** 2 + (node[1] - dest[1]) ** 2) ** 0.5
+    #return 0 #for dijsktra
 
 def is_destination(node, dest):
 
@@ -60,6 +62,7 @@ def trace_path(src, dest, node_details):
     for i in path:
         print("->", i, end=" ")
 
+    return path
 
 
 def a_star_search(grid, src, dest):
@@ -122,10 +125,10 @@ def a_star_search(grid, src, dest):
                     node_details[new_i][new_j].parent_i = i
                     node_details[new_i][new_j].parent_j = j
                     
-                    trace_path(src, dest, node_details)
+                    path = trace_path(src, dest, node_details)
                     DEST_FOUND = True
 
-                    return
+                    return path
                 
                 else:
                     
@@ -166,8 +169,14 @@ if __name__ == "__main__":
  
     # Define the source and destination
     src = [8, 0]
-    dest = [0, 0]
+    dest = [0, 9]
  
     # Run the A* search algorithm
-    a_star_search(grid, src, dest)
+    path = a_star_search(grid, src, dest)
+
+
+    #visualize the grid
+    title = 'A* Algorithm Visualization'
+    visulaize_grid.plot_grid(grid, src, dest, path,title)
+    
 

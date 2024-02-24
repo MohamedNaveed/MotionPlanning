@@ -1,6 +1,7 @@
 #Breadth first search
 import convert_grid2graph
 from collections import deque
+import visulaize_grid
 
 class node:
 
@@ -38,6 +39,7 @@ def trace_path(src, dest, vertex_details, num_cols):
         print("->", i, end=" ")
 
     print()
+    return path
 
 def bfs(graph, src_vertex, V):
 
@@ -93,7 +95,7 @@ if __name__ == '__main__':
     
     # Define the source and destination
     src = [8, 0]
-    dest = [0, 0]   
+    dest = [0, 9]   
 
     graph = convert_grid2graph.create_graph_from_grid(grid)
     
@@ -106,4 +108,8 @@ if __name__ == '__main__':
 
     vertex_details = bfs(graph.graph, src_vertex, graph.V)
 
-    trace_path(src_vertex, dest_vertex, vertex_details, cols)
+    path = trace_path(src_vertex, dest_vertex, vertex_details, cols)
+    
+    #visualize grid.
+    title = 'Breadth First Search'
+    visulaize_grid.plot_grid(grid, src, dest, path, title)
