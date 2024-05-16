@@ -1,7 +1,6 @@
 # A-star algorithm implementation. 
 
 import heapq
-import matplotlib.pyplot as plt
 import visulaize_grid
 
 
