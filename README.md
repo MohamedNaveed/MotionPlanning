@@ -10,3 +10,7 @@ Implementation of the following algorithms:
 
 ### 2) Breadth first search.
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/bfs_plot.png)
+
+### 3) Rapidly Exploring Random Trees (RRT) 
+![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRT.png)
+
