@@ -2,7 +2,9 @@
 #include <iostream>
 #include <vector>
 #include <cstdlib>
+#include "/home/naveed/Documents/matplotlib-cpp/matplotlibcpp.h"
 
+namespace plt = matplotlibcpp;
 using namespace std;
 
 
@@ -58,9 +60,34 @@ Node* findNearestNode(vector<Node*>& tree, const Node& randomNode){
 
 
 }
+
+struct CircularObstacle{
+    float x, y;
+    float radius;
+
+    CircularObstacle(float x, float y, float radius) : x(x), y(y), radius(radius) {}
+};
+
+// check if the node collides with obstacle
+bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
+
+    float dist;
+    for(auto obs : obstacles){
+        
+        dist = sqrt((obs.x - node.x) * (obs.x - node.x) + (obs.y - node.y) * (obs.y - node.y));
+
+        if (dist <= obs.radius){
+            return false;
+        }
+
+    }
+
+    return true;
+    
+}
 // build tree
 vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xmax, float Ymax, 
-    int maxIterations, float stepSize){
+    int maxIterations, float stepSize, vector<CircularObstacle>& obstacles){
     
     Node* startNode = new Node(startx, starty);
     Node* goalNode = new Node(goalx, goaly);
@@ -79,7 +106,10 @@ vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xm
         float newY = nearest->y + stepSize * cos(theta);
 
         Node* newNode = new Node(newX, newY, nearest);
-        tree.push_back(newNode);
+
+        if (isFree(*newNode, obstacles)){
+            tree.push_back(newNode);
+        }
         delete randomNode;
 
         //check if newNode is near goal.
@@ -98,7 +128,7 @@ vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xm
     
     
     
-    }
+}
     
 vector<Node*> getPath(Node* goal){
 
@@ -114,7 +144,58 @@ vector<Node*> getPath(Node* goal){
     return path;
 }
 
+std::vector<std::pair<std::vector<double>, std::vector<double>>> generateCirclePoints(
+    const CircularObstacle& obstacle, int num_points = 100) {
+
+    std::vector<double> x_points(num_points);
+    std::vector<double> y_points(num_points);
+
+    for (int i = 0; i < num_points; ++i) {
+        double theta = 2.0 * M_PI * i / num_points;
+        x_points[i] = obstacle.x + obstacle.radius * std::cos(theta);
+        y_points[i] = obstacle.y + obstacle.radius * std::sin(theta);
+    }
+
+    return {std::make_pair(x_points, y_points)};
+}
+
+void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, const Node& goal,
+            vector<CircularObstacle>& obstacles) {
     
+    //plot obstacles
+    for (const auto& obstacle : obstacles) {
+        auto circle_points = generateCirclePoints(obstacle);
+
+        plt::plot(circle_points[0].first, circle_points[0].second, "k-");
+    }
+
+    // plot RRT
+    for (auto node : tree) {
+        if (node->parent) {
+            plt::plot({node->parent->x, node->x}, {node->parent->y, node->y}, "b-");
+        }
+        else{
+            // plotting the start node
+            plt::plot({node->x}, {node->y}, "go");
+        }
+    }
+
+    //plot Path
+    for (auto node : path) {
+        if (node->parent) {
+            plt::plot({node->parent->x, node->x}, {node->parent->y, node->y}, 
+                {{"color", "orange"}, {"linestyle", "--"}, {"linewidth", "3"}});
+        }
+
+    }
+
+    plt::plot({goal.x}, {goal.y}, "ro");
+    plt::xlabel("X");
+    plt::ylabel("Y");
+    plt::axis("equal");
+    plt::show();
+}
+
 int main(){
 
     cout << "Using RRT" << endl;
@@ -125,7 +206,12 @@ int main(){
     int maxIterations = 100000; // 
     float stepSize = 0.5; //
 
-    vector<Node*> tree = RRT(startx, starty, goalx, goaly, Xmax, Ymax, maxIterations, stepSize);
+    vector<CircularObstacle> obstacles;
+    obstacles.push_back(CircularObstacle(2,2,1.5));
+    obstacles.push_back(CircularObstacle(2,8,1.5));
+
+    vector<Node*> tree = RRT(startx, starty, goalx, goaly, Xmax, Ymax, maxIterations, \
+                         stepSize, obstacles);
     
     Node* goalNode = tree.back();
 
@@ -137,10 +223,12 @@ int main(){
     }
     cout << endl;   
 
+    plotRRT(tree, path, *goalNode, obstacles);
+
     // Clean up dynamically allocated nodes
     for (auto node : tree) {
         delete node;
     }
-
+    
     return 0;
 }
