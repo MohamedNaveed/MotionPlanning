@@ -73,6 +73,8 @@ struct CircularObstacle{
 bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
 
     float dist;
+
+    // check if node is inside obstacle
     for(auto obs : obstacles){
         
         dist = calculateDistance(obs, node);
@@ -84,7 +86,41 @@ bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
     }
 
     return true;
-    
+}
+
+struct vec
+    {
+        float x,y;
+
+        vec(float x, float y): x(x), y(y) {}
+    };
+
+// check if the path connection passes through obstacle
+bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& obstacles){
+
+    float dist, t; 
+
+    for(auto obs : obstacles){
+        
+        //find angle between the vector connecting node 1 to center of obs and the vector from node 1 and node 2.
+        vec v1(node2.x - node1.x, node2.y - node1.y);
+        vec v2(obs.x - node1.x, obs.y - node1.y);
+
+        //t is the projection of v2 on v1
+        t = abs(v1.x * v2.x + v1.y * v2.y)/sqrt(v1.x * v1.x + v1.x * v1.x);
+
+        vec pt(node1.x + (t * v2.x/sqrt(v1.x * v1.x + v1.x * v1.x)), 
+                    node1.y + (t * v2.y/sqrt(v1.x * v1.x + v1.x * v1.x)));
+
+        dist = calculateDistance(obs, pt);
+
+        if (dist <= obs.radius){
+            return false;
+        }
+
+    }
+
+    return true;
 }
 // build tree
 vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xmax, float Ymax, 
@@ -108,7 +144,7 @@ vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xm
 
         Node* newNode = new Node(newX, newY, nearest);
 
-        if (isFree(*newNode, obstacles)){
+        if (isFree(*newNode, obstacles) && isPathFree(*newNode, *nearest, obstacles)){
             tree.push_back(newNode);
         }
         delete randomNode;
@@ -125,9 +161,7 @@ vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xm
         
     }
 
-    return tree;
-    
-    
+    return tree; 
     
 }
     
@@ -199,6 +233,23 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     plt::show();
 }
 
+void unit_test(){
+
+    vector<CircularObstacle> obstacles;
+    obstacles.push_back(CircularObstacle(0,0,1));
+
+    Node* Node1 = new Node(-1.5, 0.25);
+    Node* Node2 = new Node(-1.75, -1.25);
+
+    if(!isPathFree(*Node1, *Node2, obstacles)){
+        cout << "success" << endl;
+    }
+    else{
+        cout << "failed" << endl;
+    }
+
+}
+
 int main(){
 
     cout << "Using RRT" << endl;
@@ -213,6 +264,8 @@ int main(){
     obstacles.push_back(CircularObstacle(2,2,1.5));
     obstacles.push_back(CircularObstacle(2,8,1.5));
 
+    //unit_test();
+    
     vector<Node*> tree = RRT(startx, starty, goalx, goaly, Xmax, Ymax, maxIterations, \
                          stepSize, obstacles);
     
