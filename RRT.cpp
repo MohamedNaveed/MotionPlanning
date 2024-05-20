@@ -23,7 +23,8 @@ class Node{
 };
 
 //calculate euclidian distance. 
-double calculateDistance(const Node& a, const Node& b){
+template <typename T, typename Y>
+float calculateDistance(const T& a, const Y& b){
 
     float dist;
     dist = sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
@@ -74,7 +75,7 @@ bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
     float dist;
     for(auto obs : obstacles){
         
-        dist = sqrt((obs.x - node.x) * (obs.x - node.x) + (obs.y - node.y) * (obs.y - node.y));
+        dist = calculateDistance(obs, node);
 
         if (dist <= obs.radius){
             return false;
@@ -176,7 +177,8 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
         }
         else{
             // plotting the start node
-            plt::plot({node->x}, {node->y}, {{"color","red"},{"marker", "o"}, {"markersize", "10"}});
+            plt::plot({node->x}, {node->y}, {{"color","red"},{"marker", "o"}, {"markersize", "10"}, 
+            {"label","Start"}});
         }
     }
 
@@ -189,10 +191,11 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
 
     }
 
-    plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}});
+    plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}, {"label","Goal"}});
     plt::xlabel("X");
     plt::ylabel("Y");
     plt::axis("equal");
+    plt::legend();
     plt::show();
 }
 
