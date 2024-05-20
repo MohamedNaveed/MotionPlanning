@@ -176,7 +176,7 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
         }
         else{
             // plotting the start node
-            plt::plot({node->x}, {node->y}, "go");
+            plt::plot({node->x}, {node->y}, {{"color","red"},{"marker", "o"}, {"markersize", "10"}});
         }
     }
 
@@ -189,7 +189,7 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
 
     }
 
-    plt::plot({goal.x}, {goal.y}, "ro");
+    plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}});
     plt::xlabel("X");
     plt::ylabel("Y");
     plt::axis("equal");
