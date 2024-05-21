@@ -14,12 +14,12 @@ class Node{
 
     public:
 
-        float x,y;
+        float x,y,cost;
         Node* parent;
         
         //Constructor
-        Node(float x, float y, Node* parent = nullptr)\
-                :x(x), y(y), parent(parent){}
+        Node(float x, float y, Node* parent = nullptr, float cost = numeric_limits<float>::max())\
+                :x(x), y(y), parent(parent), cost(cost) {}
 
 
 };
@@ -126,10 +126,10 @@ bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& 
 }
 
 // build tree
-vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xmax, float Ymax, 
+vector<Node*> RRTstar(float startx, float starty, float goalx, float goaly, float Xmax, float Ymax, 
     int maxIterations, float stepSize, vector<CircularObstacle>& obstacles){
     
-    Node* startNode = new Node(startx, starty);
+    Node* startNode = new Node(startx, starty, nullptr, 0);
     Node* goalNode = new Node(goalx, goaly);
 
     vector<Node*> tree;
@@ -144,8 +144,9 @@ vector<Node*> RRT(float startx, float starty, float goalx, float goaly, float Xm
         float theta = atan2(randomNode->y - nearest->y, randomNode->x - nearest->x);
         float newX = nearest->x + stepSize * sin(theta);
         float newY = nearest->y + stepSize * cos(theta);
+        float newCost = nearest->cost + 1;
 
-        Node* newNode = new Node(newX, newY, nearest);
+        Node* newNode = new Node(newX, newY, nearest, newCost);
 
         if (isFree(*newNode, obstacles) && isPathFree(*newNode, *nearest, obstacles)){
             tree.push_back(newNode);
@@ -236,27 +237,11 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     plt::show();
 }
 
-void unit_test(){
-
-    vector<CircularObstacle> obstacles;
-    obstacles.push_back(CircularObstacle(0,0,1));
-
-    Node* Node1 = new Node(-1.5, 0.25);
-    Node* Node2 = new Node(-1.75, -1.25);
-
-    if(!isPathFree(*Node1, *Node2, obstacles)){
-        cout << "success" << endl;
-    }
-    else{
-        cout << "failed" << endl;
-    }
-
-}
 
 int main(){
 
 
-    cout << "Using RRT" << endl;
+    cout << "Using RRTstar" << endl;
     // Start the timer
     auto start = std::chrono::steady_clock::now();
 
@@ -272,7 +257,7 @@ int main(){
 
     //unit_test();
     
-    vector<Node*> tree = RRT(startx, starty, goalx, goaly, Xmax, Ymax, maxIterations, \
+    vector<Node*> tree = RRTstar(startx, starty, goalx, goaly, Xmax, Ymax, maxIterations, \
                          stepSize, obstacles);
     
     // End the timer
