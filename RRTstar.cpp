@@ -16,7 +16,8 @@ class Node{
 
         float x,y,cost;
         Node* parent;
-        
+        std::vector<Node*> children;
+
         //Constructor
         Node(float x, float y, Node* parent = nullptr, float cost = numeric_limits<float>::max())\
                 :x(x), y(y), parent(parent), cost(cost) {}
@@ -125,41 +126,115 @@ bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& 
     return true;
 }
 
+Node* steer(Node* nearest, Node* randomNode, float stepSize){
+
+    float d = calculateDistance(*nearest, *randomNode);
+    if ( d <= stepSize){
+        float newCost = nearest->cost + d;
+        
+        return new Node(randomNode->x, randomNode->y, nearest, newCost);
+    }
+    else {
+        float theta = atan2(randomNode->y - nearest->y, randomNode->x - nearest->x);
+        float newX = nearest->x + stepSize * sin(theta);
+        float newY = nearest->y + stepSize * cos(theta);
+        float newCost = nearest->cost + stepSize;
+
+        return new Node(newX, newY, nearest, newCost);
+
+    }   
+
+}
+
+void updateCosts(Node* node){
+
+    for (Node* child : node->children) {
+        
+        float newCost = node->cost + calculateDistance(*node, *child);
+
+        if ( newCost < child->cost){
+            child->cost = newCost;
+            updateCosts(child);
+        }
+
+    }
+}
+
+void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<CircularObstacle>& obstacles){
+    
+    float d, newCost;
+
+    for(Node* node : tree){
+
+        if (node == newNode) continue;
+
+        d = calculateDistance(*node, *newNode);
+        
+        // check if node is within the search radius
+        if (d <= searchSize && isPathFree(*newNode, *node, obstacles)){
+            
+            newCost = newNode->cost + d; //potential cost with newNode as parent
+
+            if (node->cost > newCost){
+                
+                node->parent->children.erase(std::remove(node->parent->children.begin(), 
+                            node->parent->children.end(), node), node->parent->children.end());
+                node->parent = newNode; //update parent and cost
+                node->cost = newCost; 
+                newNode->children.push_back(node);
+
+                //update cost of children recursively. 
+                updateCosts(node); 
+
+            }
+        }
+    }
+
+}
+
 // build tree
 vector<Node*> RRTstar(float startx, float starty, float goalx, float goaly, float Xmax, float Ymax, 
-    int maxIterations, float stepSize, vector<CircularObstacle>& obstacles){
+    int maxIterations, float stepSize, vector<CircularObstacle>& obstacles, float searchSize){
     
     Node* startNode = new Node(startx, starty, nullptr, 0);
     Node* goalNode = new Node(goalx, goaly);
+
+    bool goalFound = false;
 
     vector<Node*> tree;
     tree.push_back(startNode);
 
     for(int i=0; i < maxIterations; ++i){
 
+        //generate random node
         Node* randomNode = getRandomNode(Xmax, Ymax);
 
+        //find the node closest to the random node
         Node* nearest = findNearestNode(tree, *randomNode);
 
-        float theta = atan2(randomNode->y - nearest->y, randomNode->x - nearest->x);
-        float newX = nearest->x + stepSize * sin(theta);
-        float newY = nearest->y + stepSize * cos(theta);
-        float newCost = nearest->cost + 1;
+        //generate a new node in the same direction as the random node within the stepsize  
+        Node* newNode = steer(nearest, randomNode, stepSize);
 
-        Node* newNode = new Node(newX, newY, nearest, newCost);
-
+        //check collision
         if (isFree(*newNode, obstacles) && isPathFree(*newNode, *nearest, obstacles)){
+
             tree.push_back(newNode);
+            nearest->children.push_back(newNode);
+
+            //rewire the tree considering the new node.
+            rewire(tree, newNode, searchSize, obstacles);
         }
         delete randomNode;
 
         //check if newNode is near goal.
-        if (calculateDistance(*newNode, *goalNode) < stepSize){
+        if (calculateDistance(*newNode, *goalNode) < stepSize && !goalFound){
             
             goalNode->parent = newNode;
             tree.push_back(goalNode);
+            goalFound = true;
             cout << "goal reached" << endl;
-            break;
+            cout << "iterations taken = " << i << endl;
+            //break; //uncomment this to stop after goal is found.
         }
 
         
@@ -201,6 +276,7 @@ std::vector<std::pair<std::vector<double>, std::vector<double>>> generateCircleP
 void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, const Node& goal,
             vector<CircularObstacle>& obstacles) {
     
+    
     //plot obstacles
     for (const auto& obstacle : obstacles) {
         auto circle_points = generateCirclePoints(obstacle);
@@ -232,7 +308,9 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}, {"label","Goal"}});
     plt::xlabel("X");
     plt::ylabel("Y");
-    plt::axis("equal");
+    plt::xlim(-1,11);
+    plt::ylim(-1,11);
+    //plt::axis("equal");
     plt::legend();
     plt::show();
 }
@@ -248,8 +326,9 @@ int main(){
     float goalx = 6.0, goaly = 8.0; // goal x and y
     float startx = 0.0, starty =0.0; //start x and y
     float Xmax = 10.0, Ymax = 10.0; // max value of X and Y
-    int maxIterations = 100000; // 
-    float stepSize = 0.5; //
+    int maxIterations = 10000; // 
+    float stepSize = 0.5; //max distance a new node is created
+    float searchSize = 1.0; // search readius for rewiring.
 
     vector<CircularObstacle> obstacles;
     obstacles.push_back(CircularObstacle(2,2,1.5));
@@ -258,7 +337,7 @@ int main(){
     //unit_test();
     
     vector<Node*> tree = RRTstar(startx, starty, goalx, goaly, Xmax, Ymax, maxIterations, \
-                         stepSize, obstacles);
+                         stepSize, obstacles, searchSize);
     
     // End the timer
     auto end = std::chrono::steady_clock::now();
