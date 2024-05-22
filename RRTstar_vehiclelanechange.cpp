@@ -340,10 +340,13 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     }
 
     plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}, {"label","Goal"}});
+    plt::plot({-10, 10}, {-1, -1}, {{"color", "black"}, {"linestyle", "-"}});
+    plt::plot({-10, 10}, {3, 3}, {{"color", "black"}, {"linestyle", "-"}});
+    plt::plot({-10, 10}, {1, 1}, {{"color", "black"}, {"linestyle", "--"}});
     plt::xlabel("X");
     plt::ylabel("Y");
-    plt::xlim(-1.0,11.0);
-    plt::ylim(-0.5,4.0);
+    plt::xlim(-1.0, 11.0);
+    plt::ylim(-2.0, 4.0);
     //plt::axis("equal");
     plt::legend();
     plt::show();

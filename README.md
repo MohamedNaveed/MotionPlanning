@@ -17,3 +17,5 @@ Implementation of the following algorithms:
 ### 4) Rapidly Exploring Random Trees* (RRT*) 
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRTstar.png)
 
+### 5) RRT* for vehicle lane change (Search done in (x, y, theta) space) 
+![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRTstarxytheta_wo_nodes.png)
