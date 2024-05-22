@@ -14,34 +14,45 @@ class Node{
 
     public:
 
-        float x,y,cost;
+        float x,y,theta,cost;
         Node* parent;
         std::vector<Node*> children;
 
         //Constructor
-        Node(float x, float y, Node* parent = nullptr, float cost = numeric_limits<float>::max())\
-                :x(x), y(y), parent(parent), cost(cost) {}
+        Node(float x, float y, float theta, Node* parent = nullptr, float cost = numeric_limits<float>::max())\
+                :x(x), y(y), theta(theta), parent(parent), cost(cost) {}
 
 
 };
 
 //calculate euclidian distance. 
 template <typename T, typename Y>
-float calculateDistance(const T& a, const Y& b){
+float calculateDistanceNode(const T& a, const Y& b){
 
     float dist;
-    dist = sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+    dist = sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + 
+                                   0.001* (a.theta - b.theta) * (a.theta - b.theta));
+
+    return dist; 
+}
+
+template <typename T, typename Y>
+float calculateDistanceXY(const T& a, const Y& b){
+
+    float dist;
+    dist = sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) );
 
     return dist; 
 }
 
 // generate random node
-Node* getRandomNode(float Xmax, float Ymax){
+Node* getRandomNode(float Xmax, float Ymax, float thetamax){
 
     float x = static_cast<float> (rand()) * Xmax/RAND_MAX;
     float y = static_cast<float> (rand()) * Ymax/RAND_MAX;
+    float theta = static_cast<float> (rand()) * thetamax/RAND_MAX;
 
-    return new Node(x, y);
+    return new Node(x, y, theta);
 
 }
 
@@ -52,7 +63,7 @@ Node* findNearestNode(vector<Node*>& tree, const Node& randomNode){
     Node* nearestNode = nullptr;
 
     for (auto node : tree) {
-        float dist = calculateDistance(*node, randomNode);
+        float dist = calculateDistanceNode(*node, randomNode);
 
         if (dist < minDist) {
             minDist = dist;
@@ -80,7 +91,7 @@ bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
     // check if node is inside obstacle
     for(auto obs : obstacles){
         
-        dist = calculateDistance(obs, node);
+        dist = calculateDistanceXY(obs, node);
 
         if (dist <= obs.radius){
             return false;
@@ -115,7 +126,7 @@ bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& 
         vec pt(node1.x + (t * v2.x/sqrt(v1.x * v1.x + v1.x * v1.x)), 
                     node1.y + (t * v2.y/sqrt(v1.x * v1.x + v1.x * v1.x)));
 
-        dist = calculateDistance(obs, pt);
+        dist = calculateDistanceXY(obs, pt);
 
         if (dist <= obs.radius){
             return false;
@@ -128,19 +139,24 @@ bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& 
 
 Node* steer(Node* nearest, Node* randomNode, float stepSize){
 
-    float d = calculateDistance(*nearest, *randomNode);
+    float d = calculateDistanceNode(*nearest, *randomNode);
     if ( d <= stepSize){
         float newCost = nearest->cost + d;
         
-        return new Node(randomNode->x, randomNode->y, nearest, newCost);
+        return new Node(randomNode->x, randomNode->y, randomNode->theta, nearest, newCost);
     }
     else {
         float theta = atan2(randomNode->y - nearest->y, randomNode->x - nearest->x);
         float newX = nearest->x + stepSize * sin(theta);
         float newY = nearest->y + stepSize * cos(theta);
-        float newCost = nearest->cost + stepSize;
+        float newtheta = randomNode->theta;
+        Node* newNode = new Node(newX, newY, newtheta, nearest);
 
-        return new Node(newX, newY, nearest, newCost);
+        d = calculateDistanceNode(*nearest, *newNode);
+        float newCost = nearest->cost + d;
+        newNode->cost = newCost;
+
+        return newNode;
 
     }   
 
@@ -150,7 +166,7 @@ void updateCosts(Node* node){
 
     for (Node* child : node->children) {
         
-        float newCost = node->cost + calculateDistance(*node, *child);
+        float newCost = node->cost + calculateDistanceNode(*node, *child);
 
         if ( newCost < child->cost){
             child->cost = newCost;
@@ -168,7 +184,7 @@ void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<Circula
 
         if (node == newNode) continue;
 
-        d = calculateDistance(*node, *newNode);
+        d = calculateDistanceNode(*node, *newNode);
         
         // check if node is within the search radius
         if (d <= searchSize && isPathFree(*newNode, *node, obstacles)){
@@ -193,11 +209,12 @@ void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<Circula
 }
 
 // build tree
-std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float goalx, float goaly, float Xmax, float Ymax, 
+std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float starttheta, float goalx, 
+    float goaly, float goaltheta, float Xmax, float Ymax, float thetamax, 
     int maxIterations, float stepSize, vector<CircularObstacle>& obstacles, float searchSize){
     
-    Node* startNode = new Node(startx, starty, nullptr, 0);
-    Node* goalNode = new Node(goalx, goaly);
+    Node* startNode = new Node(startx, starty, starttheta, nullptr, 0);
+    Node* goalNode = new Node(goalx, goaly, goaltheta);
 
     bool goalFound = false;
 
@@ -207,7 +224,7 @@ std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float goalx,
     for(int i=0; i < maxIterations; ++i){
 
         //generate random node
-        Node* randomNode = getRandomNode(Xmax, Ymax);
+        Node* randomNode = getRandomNode(Xmax, Ymax, thetamax);
 
         //find the node closest to the random node
         Node* nearest = findNearestNode(tree, *randomNode);
@@ -227,12 +244,13 @@ std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float goalx,
         delete randomNode;
 
         //check if newNode is near goal.
-        if (calculateDistance(*newNode, *goalNode) < stepSize && !goalFound){
+        if (calculateDistanceNode(*newNode, *goalNode) < stepSize && !goalFound){
             
             goalNode->parent = newNode;
             tree.push_back(goalNode);
             goalFound = true;
-            cout << "goal reached" << endl;
+            cout << "goal reached" << "(" << goalNode->x << "," <<
+                     goalNode->y << "," << goalNode->theta << ")" << endl;
             cout << "iterations taken = " << i << endl;
             //break; //uncomment this to stop after goal is found.
         }
@@ -240,7 +258,7 @@ std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float goalx,
         
     }
 
-    return {tree, goalNode}; ; 
+    return {tree, goalNode}; 
     
 }
     
@@ -285,9 +303,11 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     }
 
     // plot RRT
+    
     for (auto node : tree) {
         if (node->parent) {
-            plt::plot({node->parent->x, node->x}, {node->parent->y, node->y}, "b-");
+           // plt::plot({node->parent->x, node->x}, {node->parent->y, node->y}, "b-");
+           continue;
         }
         else{
             // plotting the start node
@@ -295,12 +315,26 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
             {"label","Start"}});
         }
     }
-
+    
     //plot Path
     for (auto node : path) {
         if (node->parent) {
             plt::plot({node->parent->x, node->x}, {node->parent->y, node->y}, 
                 {{"color", "orange"}, {"linestyle", "--"}, {"linewidth", "3"}});
+            
+        }
+
+    }
+
+    for (auto node : path) {
+        if (node->theta) {
+    
+            std::vector<double> X = {node->x};
+            std::vector<double> Y = {node->y};
+            std::vector<double> U = {cos(node->theta)};
+            std::vector<double> V = {sin(node->theta)};
+            plt::quiver(X, Y, U, V);
+            
         }
 
     }
@@ -308,8 +342,8 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}, {"label","Goal"}});
     plt::xlabel("X");
     plt::ylabel("Y");
-    plt::xlim(-1,11);
-    plt::ylim(-1,11);
+    plt::xlim(-1.0,11.0);
+    plt::ylim(-0.5,4.0);
     //plt::axis("equal");
     plt::legend();
     plt::show();
@@ -323,25 +357,26 @@ int main(){
     // Start the timer
     auto start = std::chrono::steady_clock::now();
 
-    float goalx = 6.0, goaly = 8.0; // goal x and y
-    float startx = 0.0, starty =0.0; //start x and y
-    float Xmax = 10.0, Ymax = 10.0; // max value of X and Y
+    float goalx = 5.0, goaly = 2.0, goaltheta = 0.0; // goal x and y and theta
+    float startx = 0.0, starty = 0.0, starttheta = 0.0; //start x and y
+    float Xmax = 10.0, Ymax = 3.0, thetamax = static_cast <float> (M_PI_2); // max value of X and Y and theta
+    //float Xmin = 0.0, Ymin = -1, thetamax = -M_PI_2; // max value of X and Y and theta
     int maxIterations = 10000; // 
     float stepSize = 0.5; //max distance a new node is created
     float searchSize = 1.0; // search readius for rewiring.
 
     vector<CircularObstacle> obstacles;
-    obstacles.push_back(CircularObstacle(2,2,1.5));
-    obstacles.push_back(CircularObstacle(2,8,1.5));
+    obstacles.push_back(CircularObstacle(0,2,1));
+    obstacles.push_back(CircularObstacle(8,2,1));
 
     //unit_test();
     
-    std::pair<vector<Node*>, Node*> RRT_tree_goal = RRTstar(startx, starty, goalx, goaly, Xmax, Ymax, maxIterations, \
-                         stepSize, obstacles, searchSize);
+    std::pair<vector<Node*>, Node*> RRT_tree_goal = RRTstar(startx, starty, starttheta, goalx, goaly, goaltheta, Xmax, Ymax, thetamax, \
+                     maxIterations, stepSize, obstacles, searchSize);
 
     vector<Node*> tree = RRT_tree_goal.first;
     Node* goalNode = RRT_tree_goal.second;
-    
+
     // End the timer
     auto end = std::chrono::steady_clock::now();
 
@@ -356,7 +391,7 @@ int main(){
 
     for (auto node : path){
 
-        cout << "(" << node->x << "," <<  node->y << ")" << "->";
+        cout << "(" << node->x << "," <<  node->y << "," << node->theta << ")" << "->";
     }
     cout << endl;   
 
