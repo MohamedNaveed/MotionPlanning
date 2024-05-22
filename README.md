@@ -14,3 +14,6 @@ Implementation of the following algorithms:
 ### 3) Rapidly Exploring Random Trees (RRT) 
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRT.png)
 
+### 3) Rapidly Exploring Random Trees* (RRT*) 
+![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRTstar.png)
+
