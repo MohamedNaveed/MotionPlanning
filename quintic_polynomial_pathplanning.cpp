@@ -48,18 +48,14 @@ void plottrajectory(const Node& start, const Node& goal, vector<float>& x, vecto
             
         
 
-    // for (auto node : path) {
-    //     if (node->theta) {
+    for (int i=0; i < x.size(); i=i+20) {
     
-    //         std::vector<double> X = {node->x};
-    //         std::vector<double> Y = {node->y};
-    //         std::vector<double> U = {cos(node->theta)};
-    //         std::vector<double> V = {sin(node->theta)};
-    //         plt::quiver(X, Y, U, V);
-            
-    //     }
-
-    // }
+        std::vector<double> X = {x[i]};
+        std::vector<double> Y = {y[i]};
+        std::vector<double> U = {cos(theta[i])};
+        std::vector<double> V = {sin(theta[i])};
+        plt::quiver(X, Y, U, V);
+    }
 
     plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}, {"label","Goal"}});
     plt::plot({-10, 10}, {-1, -1}, {{"color", "black"}, {"linestyle", "-"}});
