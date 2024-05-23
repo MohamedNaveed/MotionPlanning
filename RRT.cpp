@@ -71,6 +71,7 @@ struct CircularObstacle{
     CircularObstacle(float x, float y, float radius) : x(x), y(y), radius(radius) {}
 };
 
+
 // check if the node collides with obstacle
 bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
 
@@ -109,10 +110,10 @@ bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& 
         vec v2(obs.x - node1.x, obs.y - node1.y);
 
         //t is the projection of v2 on v1
-        t = abs(v1.x * v2.x + v1.y * v2.y)/sqrt(v1.x * v1.x + v1.x * v1.x);
+        t = abs(v1.x * v2.x + v1.y * v2.y)/sqrt(v1.x * v1.x + v1.y * v1.y);
 
-        vec pt(node1.x + (t * v2.x/sqrt(v1.x * v1.x + v1.x * v1.x)), 
-                    node1.y + (t * v2.y/sqrt(v1.x * v1.x + v1.x * v1.x)));
+        vec pt(node1.x + (t * v1.x/sqrt(v1.x * v1.x + v1.y * v1.y)), 
+                    node1.y + (t * v1.y/sqrt(v1.x * v1.x + v1.y * v1.y)));
 
         dist = calculateDistance(obs, pt);
 

@@ -76,6 +76,13 @@ Node* findNearestNode(vector<Node*>& tree, const Node& randomNode){
 
 }
 
+struct RectangularObstacle{
+    float x_min, x_max, y_min, y_max;
+
+    RectangularObstacle(float x_min, float x_max, float y_min, float y_max):
+                        x_min(x_min), x_max(x_max), y_min(y_min), y_max(y_max) {}
+};
+
 struct CircularObstacle{
     float x, y;
     float radius;
@@ -84,7 +91,15 @@ struct CircularObstacle{
 };
 
 // check if the node collides with obstacle
-bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
+template <typename T>
+bool isFree(const Node& node, vector<T>& obstacles){
+    
+    
+    return true;
+    }
+
+template <>
+bool isFree<CircularObstacle>(const Node& node, vector<CircularObstacle>& obstacles){
 
     float dist;
 
@@ -101,6 +116,24 @@ bool isFree(const Node& node, vector<CircularObstacle>& obstacles){
 
     return true;
 }
+template <>
+bool isFree<RectangularObstacle>(const Node& node, vector<RectangularObstacle>& obstacles){
+
+    //check if node is inside
+    
+    for(auto obs: obstacles){
+       
+        if((node.x >= obs.x_min) && (node.x <= obs.x_max) && (node.y >= obs.y_min) && (node.y <= obs.y_max)){
+            //cout << "node" << node.x << "," << node.y << endl;
+            //cout << "obs" << obs.x_min << "," << obs.x_max << ","
+            //    << obs.y_min << "," << obs.y_max << endl;
+            return false;
+        }
+
+    }
+
+    return true;
+}
 
 struct vec
     {
@@ -109,8 +142,12 @@ struct vec
         vec(float x, float y): x(x), y(y) {}
     };
 
-// check if the path connection passes through obstacle
-bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& obstacles){
+// check if the path connection passes through circular obstacle
+template <typename T>
+bool isPathFree(const Node& node1, const Node& node2, vector<T>& obstacles){ return true;}
+
+template <>
+bool isPathFree<CircularObstacle>(const Node& node1, const Node& node2, vector<CircularObstacle>& obstacles){
 
     float dist, t; 
 
@@ -121,10 +158,10 @@ bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& 
         vec v2(obs.x - node1.x, obs.y - node1.y);
 
         //t is the projection of v2 on v1
-        t = abs(v1.x * v2.x + v1.y * v2.y)/sqrt(v1.x * v1.x + v1.x * v1.x);
+        t = abs(v1.x * v2.x + v1.y * v2.y)/sqrt(v1.x * v1.x + v1.y * v1.y);
 
-        vec pt(node1.x + (t * v2.x/sqrt(v1.x * v1.x + v1.x * v1.x)), 
-                    node1.y + (t * v2.y/sqrt(v1.x * v1.x + v1.x * v1.x)));
+        vec pt(node1.x + (t * v1.x/sqrt(v1.x * v1.x + v1.y * v1.y)), 
+                    node1.y + (t * v1.y/sqrt(v1.x * v1.x + v1.y * v1.y)));
 
         dist = calculateDistanceXY(obs, pt);
 
@@ -134,6 +171,11 @@ bool isPathFree(const Node& node1, const Node& node2, vector<CircularObstacle>& 
 
     }
 
+    return true;
+}
+
+template <>
+bool isPathFree<RectangularObstacle>(const Node& node1, const Node& node2, vector<RectangularObstacle>& obstacles){
     return true;
 }
 
@@ -175,8 +217,8 @@ void updateCosts(Node* node){
 
     }
 }
-
-void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<CircularObstacle>& obstacles){
+template <typename T>
+void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<T>& obstacles){
     
     float d, newCost;
 
@@ -209,9 +251,10 @@ void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<Circula
 }
 
 // build tree
+template <typename T>
 std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float starttheta, float goalx, 
     float goaly, float goaltheta, float Xmax, float Ymax, float thetamax, 
-    int maxIterations, float stepSize, vector<CircularObstacle>& obstacles, float searchSize){
+    int maxIterations, float stepSize, vector<T>& obstacles, float searchSize){
     
     Node* startNode = new Node(startx, starty, starttheta, nullptr, 0);
     Node* goalNode = new Node(goalx, goaly, goaltheta);
@@ -223,6 +266,7 @@ std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float startt
 
     for(int i=0; i < maxIterations; ++i){
 
+        
         //generate random node
         Node* randomNode = getRandomNode(Xmax, Ymax, thetamax);
 
@@ -291,22 +335,28 @@ std::vector<std::pair<std::vector<double>, std::vector<double>>> generateCircleP
     return {std::make_pair(x_points, y_points)};
 }
 
+
 void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, const Node& goal,
-            vector<CircularObstacle>& obstacles) {
+            vector<RectangularObstacle>& obstacles) {
     
     
     //plot obstacles
-    for (const auto& obstacle : obstacles) {
-        auto circle_points = generateCirclePoints(obstacle);
+    for (auto obs : obstacles){
 
-        plt::plot(circle_points[0].first, circle_points[0].second, "k-");
+        std::vector<double> x = {obs.x_min, obs.x_max, obs.x_max, obs.x_min, obs.x_min};
+        std::vector<double> y = {obs.y_min, obs.y_min, obs.y_max, obs.y_max, obs.y_min};
+
+        // Plot the rectangle
+        plt::plot(x, y, "r-"); // "r-" specifies a red solid line
+
     }
+    
 
     // plot RRT
     
     for (auto node : tree) {
         if (node->parent) {
-           // plt::plot({node->parent->x, node->x}, {node->parent->y, node->y}, "b-");
+           //plt::plot({node->parent->x, node->x}, {node->parent->y, node->y}, "b-");
            continue;
         }
         else{
@@ -365,12 +415,16 @@ int main(){
     float Xmax = 10.0, Ymax = 3.0, thetamax = static_cast <float> (M_PI_2); // max value of X and Y and theta
     //float Xmin = 0.0, Ymin = -1, thetamax = -M_PI_2; // max value of X and Y and theta
     int maxIterations = 10000; // 
-    float stepSize = 0.5; //max distance a new node is created
-    float searchSize = 1.0; // search readius for rewiring.
+    float stepSize = 0.25; //max distance a new node is created
+    float searchSize = 0.5; // search readius for rewiring.
 
-    vector<CircularObstacle> obstacles;
-    obstacles.push_back(CircularObstacle(0,2,1));
-    obstacles.push_back(CircularObstacle(8,2,1));
+    //vector<CircularObstacle> obstacles;
+    //obstacles.push_back(CircularObstacle(0,2,1));
+    //obstacles.push_back(CircularObstacle(8,2,1));
+
+    vector<RectangularObstacle> obstacles;
+    obstacles.push_back(RectangularObstacle(-0.5, 0.5, 1.5, 2.5));
+    obstacles.push_back(RectangularObstacle(7.5, 8.5, 1.5, 2.5));
 
     //unit_test();
     

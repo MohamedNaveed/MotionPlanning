@@ -19,3 +19,6 @@ Implementation of the following algorithms:
 
 ### 5) RRT* for vehicle lane change (Search done in (x, y, theta) space) 
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRTstarxytheta_wo_nodes.png)
+
+### 6) Trajectory using quintic polynomials for vehicle lane change ((x, y, theta) space) 
+![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/quintic_polynomial_path.png)
