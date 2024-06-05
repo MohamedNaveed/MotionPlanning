@@ -139,3 +139,6 @@ int main(){
     plottrajectory(*startNode, *goalNode, x_traj, y_traj, theta_traj);
     return 0;
 }
+
+//command to run the code
+//g++ quintic_polynomial_pathplanning.cpp -o quintic_polynomial_pathplanning -std=c++17 -I/usr/include/eigen3 -I/usr/include/python3.10 -lpython3.10

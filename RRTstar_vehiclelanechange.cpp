@@ -142,12 +142,14 @@ struct vec
         vec(float x, float y): x(x), y(y) {}
     };
 
-// check if the path connection passes through circular obstacle
+
 template <typename T>
 bool isPathFree(const Node& node1, const Node& node2, vector<T>& obstacles){ return true;}
 
 template <>
 bool isPathFree<CircularObstacle>(const Node& node1, const Node& node2, vector<CircularObstacle>& obstacles){
+
+    // check if the path connection passes through circular obstacle
 
     float dist, t; 
 
@@ -175,7 +177,38 @@ bool isPathFree<CircularObstacle>(const Node& node1, const Node& node2, vector<C
 }
 
 template <>
-bool isPathFree<RectangularObstacle>(const Node& node1, const Node& node2, vector<RectangularObstacle>& obstacles){
+bool isPathFree<RectangularObstacle>(const Node& node1, const Node& node2, 
+                                                vector<RectangularObstacle>& obstacles){
+    
+    for (auto obs : obstacles){
+
+		// check if both the nodes are in one side of the rectangle
+
+		if (node1.x < obs.x_min && node2.x < obs.x_min) return true;
+		else if (node1.x > obs.x_max && node2.x > obs.x_max) return true;
+		else if (node1.y < obs.y_min && node2.y < obs.y_min) return true;
+		else if (node1.y > obs.y_max && node2.y > obs.y_max) return true;
+
+		// if it not on one side, check if it intersects.
+		if ( (node2.x - node1.x) != 0) {
+			double m = (node2.y - node1.y)/(node2.x - node1.x);//slope of the line.
+
+			double y_intercept1 = (m * (obs.x_min - node1.x) + node1.y);
+			double y_intercept2 = (m * (obs.x_max - node1.x) + node1.y);
+			double x_intercept1 = ((obs.y_min - node1.y)/m + node1.x);
+			double x_intercept2 = ((obs.y_max - node1.y)/m + node1.x);
+
+			if ( (y_intercept1 <= obs.y_max) && (y_intercept1 >= obs.y_min) ) return false;
+			else if ( (y_intercept2 <= obs.y_max) && (y_intercept2 >= obs.y_min) ) return false;
+			else if ( (x_intercept1 <= obs.x_max) && (x_intercept1 >= obs.x_min) ) return false;
+			else if ( (x_intercept2 <= obs.x_max) && (x_intercept2 >= obs.x_min) ) return false;
+		}
+		else return false; //if the slope in 0 and both points are not in one side of the rectangle, 
+							// then it crosses it.
+		
+
+    }	
+    
     return true;
 }
 
@@ -217,6 +250,7 @@ void updateCosts(Node* node){
 
     }
 }
+
 template <typename T>
 void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<T>& obstacles){
     
@@ -264,7 +298,7 @@ std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float startt
     vector<Node*> tree;
     tree.push_back(startNode);
 
-    for(int i=0; i < maxIterations; ++i){
+    for (int i=0; i < maxIterations; ++i) {
 
         
         //generate random node
@@ -390,13 +424,13 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     }
 
     plt::plot({goal.x}, {goal.y}, {{"color","green"},{"marker", "o"}, {"markersize", "10"}, {"label","Goal"}});
-    plt::plot({-10, 10}, {-1, -1}, {{"color", "black"}, {"linestyle", "-"}});
-    plt::plot({-10, 10}, {3, 3}, {{"color", "black"}, {"linestyle", "-"}});
-    plt::plot({-10, 10}, {1, 1}, {{"color", "black"}, {"linestyle", "--"}});
-    plt::xlabel("X");
-    plt::ylabel("Y");
-    plt::xlim(-1.0, 11.0);
-    plt::ylim(-2.0, 4.0);
+    plt::plot({-1, 20}, {-1.5, -1.5}, {{"color", "black"}, {"linestyle", "-"}});
+    plt::plot({-1, 20}, {4.5, 4.5}, {{"color", "black"}, {"linestyle", "-"}});
+    plt::plot({-1, 20}, {1.5, 1.5}, {{"color", "black"}, {"linestyle", "--"}});
+    plt::xlabel("X [m]");
+    plt::ylabel("Y [m]");
+    plt::xlim(-1.0, 20.0);
+    plt::ylim(-2.0, 5.0);
     //plt::axis("equal");
     plt::legend();
     plt::show();
@@ -409,22 +443,22 @@ int main(){
     cout << "Using RRTstar" << endl;
     // Start the timer
     auto start = std::chrono::steady_clock::now();
-
-    float goalx = 5.0, goaly = 2.0, goaltheta = 0.0; // goal x and y and theta
+    std::srand(10); // random seed. 
+    float goalx = 8.5, goaly = 3.0, goaltheta = 0.0; // goal x and y and theta
     float startx = 0.0, starty = 0.0, starttheta = 0.0; //start x and y
-    float Xmax = 10.0, Ymax = 3.0, thetamax = static_cast <float> (M_PI_2); // max value of X and Y and theta
+    float Xmax = 13.0, Ymax = 4.0, thetamax = static_cast <float> (M_PI_2); // max value of X and Y and theta
     //float Xmin = 0.0, Ymin = -1, thetamax = -M_PI_2; // max value of X and Y and theta
-    int maxIterations = 10000; // 
-    float stepSize = 0.25; //max distance a new node is created
-    float searchSize = 0.5; // search readius for rewiring.
+    int maxIterations = 200000; // 
+    float stepSize = 0.5; //max distance a new node is created
+    float searchSize = 0.75; // search readius for rewiring.
 
     //vector<CircularObstacle> obstacles;
     //obstacles.push_back(CircularObstacle(0,2,1));
     //obstacles.push_back(CircularObstacle(8,2,1));
 
     vector<RectangularObstacle> obstacles;
-    obstacles.push_back(RectangularObstacle(-0.5, 0.5, 1.5, 2.5));
-    obstacles.push_back(RectangularObstacle(7.5, 8.5, 1.5, 2.5));
+    obstacles.push_back(RectangularObstacle(-0.5, 4.0, 2, 4));
+    obstacles.push_back(RectangularObstacle(12.5, 17, 2, 4));
 
     //unit_test();
     
