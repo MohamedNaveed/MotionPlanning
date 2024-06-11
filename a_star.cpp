@@ -52,9 +52,6 @@ class a_star{
             else if  (!(is_unblocked(grid, src->i, src->j) && is_unblocked(grid, dest->i, dest->j)))
 
                 std::cout << "Source or Destination node is blocked." << std::endl;
-
-            //initialize closed list
-            std::vector <std::vector <bool>> closed_list(ROW, std::vector <bool>(COL, false));
             
             //node list
             std::vector <std::vector <node*>> node_list(ROW, std::vector <node*> (COL));
@@ -95,7 +92,7 @@ class a_star{
                 int i = cur_node->i; // cur row
                 int j = cur_node->j;
                 
-                closed_list[i][j] = true;
+                
                 // directions to check for successors.
                 std::vector <std::pair <int, int>> directions = {{0,1}, {0,-1}, 
                     {1,0}, {-1,0}, {1,1}, {1,-1}, {-1,-1}, {-1,1}};
