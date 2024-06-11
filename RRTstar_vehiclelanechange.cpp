@@ -22,6 +22,8 @@ class Node{
         Node(float x, float y, float theta, Node* parent = nullptr, float cost = numeric_limits<float>::max())\
                 :x(x), y(y), theta(theta), parent(parent), cost(cost) {}
 
+        //Destructor
+        ~Node(){}
 
 };
 
@@ -65,7 +67,7 @@ Node* findNearestNode(vector<Node*>& tree, const Node& randomNode){
     for (auto node : tree) {
         float dist = calculateDistanceNode(*node, randomNode);
 
-        if (dist < minDist) {
+        if (dist < minDist && node->x <= randomNode.x) { //check if it is behind the current node. 
             minDist = dist;
             nearestNode = node;
         }
@@ -212,9 +214,23 @@ bool isPathFree<RectangularObstacle>(const Node& node1, const Node& node2,
     return true;
 }
 
+Node* KBM (Node* state, float* control) {
+
+    double dt = 0.1; //seconds
+    double L = 3.6;//meters
+    float new_x = state->x + control[0]*cos(state->theta)*dt;
+    float new_y = state->y + control[0]*sin(state->theta)*dt;
+    float new_theta = state->theta + control[0]*tan(control[1])*dt/L; 
+
+    Node* new_state = new Node(new_x, new_y, new_theta, state);
+
+    return new_state;
+}
+
 Node* steer(Node* nearest, Node* randomNode, float stepSize){
 
     float d = calculateDistanceNode(*nearest, *randomNode);
+
     if ( d <= stepSize){
         float newCost = nearest->cost + d;
         
@@ -234,6 +250,35 @@ Node* steer(Node* nearest, Node* randomNode, float stepSize){
         return newNode;
 
     }   
+}
+
+Node* steer_KBM(Node* nearest, Node* randomNode, float stepSize){
+
+    float vel_max = 5; // meters/second
+    float steer_max = static_cast <float> (M_PI)/3.0;
+
+    // calculate velocity using Proportional controller
+    float control[2];
+    control[0] = 5.0*(randomNode->x - nearest->x);
+
+    if (control[0] > vel_max) control[0] = vel_max;
+    else if (control[0] < 0) control[0] = 0;
+    
+    //calculate steering angly using proportional controller. 
+
+    double beta = atan2(randomNode->y - nearest->y, randomNode->x - nearest->x);
+    double heading_error = beta - nearest->theta;
+    control[1] = 3.0*heading_error;
+
+    if (control[1] > steer_max) control[1] = steer_max;
+    else if (control[1] < -steer_max) control[1] = -steer_max;
+
+    Node* newNode = KBM(nearest, control);
+    float d = calculateDistanceNode(*nearest, *newNode);
+
+    newNode->cost = nearest->cost + d;
+
+    return newNode;
 
 }
 
@@ -267,7 +312,7 @@ void rewire(vector<Node*>& tree, Node* newNode, float searchSize, vector<T>& obs
             
             newCost = newNode->cost + d; //potential cost with newNode as parent
 
-            if (node->cost > newCost){
+            if (node->cost > newCost && node->x >= newNode-> x){
                 
                 node->parent->children.erase(std::remove(node->parent->children.begin(), 
                             node->parent->children.end(), node), node->parent->children.end());
@@ -303,12 +348,21 @@ std::pair<vector<Node*>, Node*> RRTstar(float startx, float starty, float startt
         
         //generate random node
         Node* randomNode = getRandomNode(Xmax, Ymax, thetamax);
-
+        
         //find the node closest to the random node
         Node* nearest = findNearestNode(tree, *randomNode);
 
         //generate a new node in the same direction as the random node within the stepsize  
-        Node* newNode = steer(nearest, randomNode, stepSize);
+        Node* newNode = steer_KBM(nearest, randomNode, stepSize);
+        
+        // cout << "i=" << i <<endl;
+        // cout << "Random Node x: " << randomNode->x << " y: " << randomNode->y <<
+        //            " theta: " << randomNode->theta << endl;
+        // cout << "nearest Node x: " << nearest->x << " y: " << nearest->y <<
+        //            " theta: " << nearest->theta << endl;
+        // cout << "newNode Node x: " << newNode->x << " y: " << newNode->y <<
+        //            " theta: " << newNode->theta << endl;
+
 
         //check collision
         if (isFree(*newNode, obstacles) && isPathFree(*newNode, *nearest, obstacles)){
@@ -432,7 +486,7 @@ void plotRRT(const std::vector<Node*>& tree, const std::vector<Node*>& path, con
     plt::xlim(-1.0, 20.0);
     plt::ylim(-2.0, 5.0);
     //plt::axis("equal");
-    plt::legend();
+    plt::legend({{"loc", "lower left"}});
     plt::show();
 }
 
@@ -448,7 +502,7 @@ int main(){
     float startx = 0.0, starty = 0.0, starttheta = 0.0; //start x and y
     float Xmax = 13.0, Ymax = 4.0, thetamax = static_cast <float> (M_PI_2); // max value of X and Y and theta
     //float Xmin = 0.0, Ymin = -1, thetamax = -M_PI_2; // max value of X and Y and theta
-    int maxIterations = 200000; // 
+    int maxIterations = 20000; // 
     float stepSize = 0.5; //max distance a new node is created
     float searchSize = 0.75; // search readius for rewiring.
 
@@ -479,7 +533,7 @@ int main(){
 
     // Calculating the path.
     vector<Node*> path = getPath(goalNode);
-
+    cout << "Path found:" << endl;
     for (auto node : path){
 
         cout << "(" << node->x << "," <<  node->y << "," << node->theta << ")" << "->";
