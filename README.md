@@ -17,9 +17,16 @@ Implementation of the following algorithms:
 ### 4) Rapidly Exploring Random Trees* (RRT*) 
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRTstar.png)
 
-### 5) RRT* for vehicle lane change (Search done in (x, y, theta) space with collision check implemented for rectangular obstacles) 
+### 5) RRT* for vehicle lane change 
+Search done in (x, y, theta) space with collision check implemented for rectangular obstacles.
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/lane_change_wRRTnodes.png)
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/lane_change_woRRTnodes.png)
 
-### 6) Trajectory using quintic polynomials for vehicle lane change ((x, y, theta) space) 
+### 6) RRT* for vehicle lane change using Kinematic Bicycle Model for steering. 
+Search done in (x, y, theta) space with collision check implemented for rectangular obstacles. <br>
+A proportional controller is used to generate control inputs for the model. 
+![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRTstarKBM_w_nodes.png)
+![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/RRTstarKBM_wo_nodes.png)
+
+### 7) Trajectory using quintic polynomials for vehicle lane change ((x, y, theta) space) 
 ![](https://github.com/MohamedNaveed/MotionPlanning/blob/main/quintic_polynomial_path.png)
